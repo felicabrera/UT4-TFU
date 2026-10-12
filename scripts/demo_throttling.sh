@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# UT4 - Throttling (disponibilidad).
+# Throttling (disponibilidad).
 #   1. un cliente que se pasa del limite recibe 429
 #   2. un cliente que inunda el sistema no degrada a los demas
 #
