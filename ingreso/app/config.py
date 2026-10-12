@@ -38,3 +38,29 @@ TIMEOUT_ADMISION_S = float(os.getenv("TIMEOUT_ADMISION_S", 10))
 
 # UT4 - Plazo de los chequeos de /health/ready.
 TIMEOUT_SALUD_S = float(os.getenv("TIMEOUT_SALUD_S", 2))
+
+# ---------------------------------------------------------------------------
+# UT4 - Cache-Aside (patron de rendimiento).
+#
+# Cache en memoria para consultas GET /cintas/{cinta_id}. Reduce latencia y
+# evita consultas innecesarias hacia admision y la base de datos.
+# ---------------------------------------------------------------------------
+CACHE_HABILITADA = os.getenv("CACHE_HABILITADA", "true").lower() in ("1", "true", "yes")
+CACHE_TTL_S = float(os.getenv("CACHE_TTL_S", 5.0))
+
+# ---------------------------------------------------------------------------
+# UT4 - Gatekeeper (patron de seguridad).
+#
+# Clave interna que ingreso (Gatekeeper) adjunta en sus solicitudes hacia admision.
+# ---------------------------------------------------------------------------
+CLAVE_INTERNA = os.getenv("CLAVE_INTERNA", "cinta-interna-dev")
+
+# ---------------------------------------------------------------------------
+# UT4 - Gateway Offloading (patron de seguridad).
+#
+# Autenticacion de clientes externos descargada en la frontera (ingreso).
+# ---------------------------------------------------------------------------
+_claves_raw = os.getenv("API_KEYS_VALIDAS", "cliente-alpha,cliente-beta,cliente-operador")
+API_KEYS_VALIDAS = {k.strip() for k in _claves_raw.split(",") if k.strip()}
+ENFORCE_API_KEY = os.getenv("ENFORCE_API_KEY", "false").lower() in ("1", "true", "yes")
+

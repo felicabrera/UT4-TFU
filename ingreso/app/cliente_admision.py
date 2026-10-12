@@ -7,12 +7,14 @@ Devuelve siempre (codigo, cuerpo) para que main.py decida que responder.
 
 import httpx
 
-from app.config import ADMISION_URL, TIMEOUT_ADMISION_S
+from app.config import ADMISION_URL, CLAVE_INTERNA, TIMEOUT_ADMISION_S
 
 
 def _pedir(metodo, ruta, json=None):
+    cabeceras = {"X-Clave-Interna": CLAVE_INTERNA}
     try:
         r = httpx.request(metodo, ADMISION_URL + ruta, json=json,
+                          headers=cabeceras,
                           timeout=TIMEOUT_ADMISION_S)
     except httpx.HTTPError as error:
         # Si no se puede confirmar el cupo, no se admite: ante la duda la cinta
