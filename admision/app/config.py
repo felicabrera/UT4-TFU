@@ -23,3 +23,6 @@ CINTA_CAPACIDAD_KG = float(os.getenv("CINTA_CAPACIDAD_KG", 100))
 # abierta entre la lectura y la escritura, para que la condición de carrera
 # sea observable de forma reproducible en la demostración.
 VENTANA_CARRERA_S = float(os.getenv("VENTANA_CARRERA_S", 0.15))
+
+# UT4 - Plazo de los chequeos de /health/ready (PostgreSQL exige minimo 2 s).
+TIMEOUT_SALUD_S = max(2, int(float(os.getenv("TIMEOUT_SALUD_S", 2))))

@@ -35,3 +35,6 @@ LIMITES = {
 ADMISION_URL = os.getenv("ADMISION_URL", "http://admision:8000")
 CINTA_POR_DEFECTO = os.getenv("CINTA_ID", "C1")
 TIMEOUT_ADMISION_S = float(os.getenv("TIMEOUT_ADMISION_S", 10))
+
+# UT4 - Plazo de los chequeos de /health/ready.
+TIMEOUT_SALUD_S = float(os.getenv("TIMEOUT_SALUD_S", 2))

@@ -60,7 +60,8 @@ printf '\n'
 mostrar_cinta
 
 paso "Lanzando las 50"
-generador rafaga --n 50 --url http://balanceador/paquetes --cuerpo "$PAQUETE_10KG"
+# Puerto 82: entrada interna sin throttling (UT4).
+generador rafaga --n 50 --url http://balanceador:82/paquetes --cuerpo "$PAQUETE_10KG"
 
 ESTADO="$(estado_cinta)"
 printf '\n'

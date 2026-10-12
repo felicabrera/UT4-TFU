@@ -31,10 +31,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Usa /health/live: si se cae la base, reiniciar admision no arregla nada.
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live', timeout=2)"]
       interval: 5s
-      retries: 10
+      timeout: 3s
+      retries: 3
       start_period: 15s
 
   # Valida el paquete antes de pedir cupo. Sin estado, se puede replicar.
@@ -46,6 +48,12 @@ services:
     depends_on:
       admision:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     # Limite de CPU por replica. Lo usa el script de escalabilidad.
     deploy:
       resources:
@@ -53,15 +61,33 @@ services:
           cpus: "${INGRESO_CPUS:-1.0}"
 
   # Balanceador: reparte las solicitudes entre las replicas de ingreso.
+  # Tambien aplica el throttling (UT4).
   balanceador:
     image: nginx:1.27-alpine
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Plantilla: nginx completa las variables de throttling al arrancar.
+      - ./nginx/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
+    environment:
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
+      THROTTLE_TASA: ${THROTTLE_TASA:-20r/s}
+      THROTTLE_RAFAGA: ${THROTTLE_RAFAGA:-40}
     ports:
-      - "8080:80"   # API publica
+      - "8080:80"   # API publica, con throttling
       - "8081:81"   # acceso a admision, para los scripts de demo
+      # El 82 (sin throttling) no se publica.
     depends_on:
-      - ingreso
+      ingreso:
+        condition: service_healthy
+
+  # UT4 - Health Endpoint Monitoring. Ver con: docker compose logs -f monitor
+  monitor:
+    build: ./monitor
+    environment:
+      MONITOR_SERVICIOS: "ingreso:8000,admision:8000"
+      MONITOR_INTERVALO_S: ${MONITOR_INTERVALO_S:-2}
+      MONITOR_TIMEOUT_S: ${MONITOR_TIMEOUT_S:-4}
+    depends_on:
+      - balanceador
 
   # Generador de carga de las demos. No se levanta junto con el resto.
   generador:

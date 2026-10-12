@@ -9,6 +9,8 @@
 #     B)  3 replicas x 0.25 CPU  HORIZONTAL  (0.75 en total)
 #     C)  1 replica x 0.75 CPU   VERTICAL    (0.75 en total)
 #
+# Va por el puerto 82, sin throttling (UT4).
+#
 # La carga son solicitudes que la validacion rechaza: no llegan a la base, asi
 # que se mide el componente que se escala y no el que se comparte.
 #
@@ -30,7 +32,7 @@ medir() {
 
     local salida
     salida="$(generador rendimiento --n "$SOLICITUDES" --c "$CONCURRENCIA" \
-        --url http://balanceador/paquetes --cuerpo "$PAQUETE_INVALIDO")"
+        --url http://balanceador:82/paquetes --cuerpo "$PAQUETE_INVALIDO")"
     printf '%s\n' "$salida"
     echo "$1|$(printf '%s' "$salida" | sed -n 's/.*throughput *: *\([0-9.]*\).*/\1/p')" >> "$RESULTADOS"
 }

@@ -16,7 +16,8 @@ seccion "4.1  Con transaccion"
 reiniciar_cinta
 mostrar_cinta
 paso "50 solicitudes simultaneas de 10 kg"
-generador rafaga --n 50 --url http://balanceador/paquetes --cuerpo "$PAQUETE_10KG"
+# Puerto 82: entrada interna sin throttling (UT4).
+generador rafaga --n 50 --url http://balanceador:82/paquetes --cuerpo "$PAQUETE_10KG"
 
 ACID="$(estado_cinta)"
 ACID_PAQ="$(campo "$ACID" paquetes_en_transito)"

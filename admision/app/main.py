@@ -17,12 +17,14 @@ from decimal import Decimal
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.db import INSTANCIA, Sesion, repo, sembrar_cinta, vista_cinta
 from app.demo import router as router_demo
 from app.modelos import PaqueteEnTransito
+from app.salud import router as router_salud
+from app.salud import vivo
 
 
 @asynccontextmanager
@@ -57,14 +59,14 @@ class SolicitudEgreso(BaseModel):
     paquete_id: uuid.UUID
 
 
+# UT4 - Health Endpoint Monitoring.
+app.include_router(router_salud)
+
+
 @app.get("/health")
 def health():
-    try:
-        with Sesion() as sesion:
-            sesion.execute(text("SELECT 1"))
-    except Exception as error:
-        raise HTTPException(503, f"base no disponible: {error}")
-    return {"estado": "ok", "componente": "admision", "instancia": INSTANCIA}
+    """Compatibilidad con la UT3. Equivale a /health/live."""
+    return vivo()
 
 
 @app.get("/")

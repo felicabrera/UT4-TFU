@@ -5,16 +5,14 @@ Valida el paquete con las reglas de su tipo y, si pasa, le pide cupo al
 componente admision. No guarda nada entre solicitudes, por eso se puede replicar.
 """
 
-import socket
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app import cliente_admision
 from app.config import CINTA_POR_DEFECTO
 from app.reglas.registro import obtener_regla
-
-INSTANCIA = socket.gethostname()
+from app.salud import INSTANCIA, vivo
+from app.salud import router as router_salud
 
 app = FastAPI(
     title="Componente ingreso — API Cinta Transportadora",
@@ -32,9 +30,14 @@ class Paquete(BaseModel):
     cinta_id: str = CINTA_POR_DEFECTO
 
 
+# UT4 - Health Endpoint Monitoring.
+app.include_router(router_salud)
+
+
 @app.get("/health")
 def health():
-    return {"estado": "ok", "componente": "ingreso", "instancia": INSTANCIA}
+    """Compatibilidad con la UT3. Equivale a /health/live."""
+    return vivo()
 
 
 @app.get("/")
