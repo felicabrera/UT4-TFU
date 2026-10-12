@@ -1,0 +1,72 @@
+# Despliegue del sistema.
+#
+#   docker compose up -d --build
+#   docker compose up -d --scale ingreso=3 --scale admision=3
+
+name: tfu-ut3
+
+services:
+
+  # Base de datos. Es el unico componente con estado.
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cinta
+      POSTGRES_USER: cinta
+      POSTGRES_PASSWORD: cinta
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - datos_cinta:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cinta"]
+      interval: 5s
+      retries: 10
+
+  # Administra el cupo de carga de la cinta. Sin estado, se puede replicar.
+  admision:
+    build: ./admision
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://cinta:cinta@db:5432/cinta
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      retries: 10
+      start_period: 15s
+
+  # Valida el paquete antes de pedir cupo. Sin estado, se puede replicar.
+  ingreso:
+    build: ./ingreso
+    env_file: .env
+    environment:
+      ADMISION_URL: http://admision:8000
+    depends_on:
+      admision:
+        condition: service_healthy
+    # Limite de CPU por replica. Lo usa el script de escalabilidad.
+    deploy:
+      resources:
+        limits:
+          cpus: "${INGRESO_CPUS:-1.0}"
+
+  # Balanceador: reparte las solicitudes entre las replicas de ingreso.
+  balanceador:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:80"   # API publica
+      - "8081:81"   # acceso a admision, para los scripts de demo
+    depends_on:
+      - ingreso
+
+  # Generador de carga de las demos. No se levanta junto con el resto.
+  generador:
+    build: ./carga
+    profiles: ["demos"]
+
+volumes:
+  datos_cinta:
