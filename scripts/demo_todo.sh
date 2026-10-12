@@ -25,12 +25,17 @@ DEMOS=(
     "demo_3_acid.sh|ACID"
     "demo_4_base.sh|Que pasaria con BASE"
     "demo_5_escalabilidad.sh|Escalabilidad horizontal"
+    "demo_health.sh|Health Endpoint Monitoring (disponibilidad)"
+    "demo_throttling.sh|Throttling (disponibilidad)"
+    "demo_cache_aside.sh|Cache-Aside (rendimiento)"
+    "demo_seguridad.sh|Gatekeeper y Gateway Offloading (seguridad)"
 )
 
-titulo "TFU UT3 — DEMOSTRACION COMPLETA"
+titulo "TFU UT4: DEMOSTRACION COMPLETA"
 requiere_sistema
 
-nota "Se van a correr estas cinco demostraciones:"
+nota "Se van a correr estas demostraciones:"
+
 printf '\n'
 for i in "${!DEMOS[@]}"; do
     printf '     %d. %s\n' "$(( i + 1 ))" "${DEMOS[$i]##*|}"

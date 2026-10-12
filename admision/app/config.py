@@ -26,3 +26,12 @@ VENTANA_CARRERA_S = float(os.getenv("VENTANA_CARRERA_S", 0.15))
 
 # UT4 - Plazo de los chequeos de /health/ready (PostgreSQL exige minimo 2 s).
 TIMEOUT_SALUD_S = max(2, int(float(os.getenv("TIMEOUT_SALUD_S", 2))))
+
+# ---------------------------------------------------------------------------
+# UT4 - Gatekeeper (patron de seguridad).
+#
+# Clave interna que admision exige en el header X-Clave-Interna para aceptar
+# solicitudes de admision. Asegura que nadie saltee al Gatekeeper (ingreso).
+# ---------------------------------------------------------------------------
+CLAVE_INTERNA = os.getenv("CLAVE_INTERNA", "cinta-interna-dev")
+

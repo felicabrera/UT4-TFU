@@ -10,21 +10,43 @@ Por eso tambien se puede replicar, ya que dos replicas que compiten por la misma
 cinta se serializan en la base y no en el proceso.
 """
 
+import secrets
 import time
 import uuid
 from contextlib import asynccontextmanager
 from decimal import Decimal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
+from app.config import CLAVE_INTERNA
 from app.db import INSTANCIA, Sesion, repo, sembrar_cinta, vista_cinta
 from app.demo import router as router_demo
 from app.modelos import PaqueteEnTransito
 from app.salud import router as router_salud
 from app.salud import vivo
+
+
+def _verificar_gatekeeper(clave: str | None):
+    """
+    UT4 - Gatekeeper (patron de seguridad).
+
+    Admision solo acepta solicitudes de admision que provengan del Gatekeeper
+    (componente ingreso). Exige la cabecera X-Clave-Interna coincidente.
+    Si falta o es invalida, rechaza con HTTP 403.
+    """
+    if clave is None or not secrets.compare_digest(clave, CLAVE_INTERNA):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "acceso denegado",
+                "motivo": "las admisiones requieren pasar por el Gatekeeper (componente ingreso)",
+                "patron": "Gatekeeper",
+            },
+        )
+
 
 
 @asynccontextmanager
@@ -93,7 +115,11 @@ def consultar(cinta_id: str):
 
 
 @app.post("/cintas/{cinta_id}/admisiones")
-def admitir(cinta_id: str, solicitud: SolicitudAdmision):
+def admitir(
+    cinta_id: str,
+    solicitud: SolicitudAdmision,
+    x_clave_interna: str | None = Header(default=None),
+):
     """
     Reserva cupo para un paquete. Esta es la transaccion ACID del sistema:
 
@@ -104,11 +130,12 @@ def admitir(cinta_id: str, solicitud: SolicitudAdmision):
           UPDATE cinta.carga_kg
         COMMIT
 
-    Si dos replicas piden el mismo ultimo lugar, la segunda espera el bloqueo,
-    lee la carga ya actualizada y es rechazada. La cinta nunca se pasa de su
-    capacidad.
+    Gatekeeper (seguridad): exige la clave interna provista por ingreso.
+    Cualquier cliente directo sin la clave recibe 403 Forbidden.
     """
+    _verificar_gatekeeper(x_clave_interna)
     peso = Decimal(str(solicitud.peso_kg))
+
 
     with Sesion() as sesion:
         try:
