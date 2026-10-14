@@ -23,6 +23,7 @@ DEMOS=(
     "demo_health.sh|Health Endpoint Monitoring (disponibilidad)"
     "demo_throttling.sh|Throttling (disponibilidad)"
     "demo_cache_aside.sh|Cache-Aside (rendimiento)"
+    "demo_queue_load_leveling.sh|Queue Based Load Leveling (rendimiento)"
     "demo_seguridad.sh|Gatekeeper y Gateway Offloading (seguridad)"
 )
 
