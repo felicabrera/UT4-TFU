@@ -35,3 +35,8 @@ TIMEOUT_SALUD_S = max(2, int(float(os.getenv("TIMEOUT_SALUD_S", 2))))
 # ---------------------------------------------------------------------------
 CLAVE_INTERNA = os.getenv("CLAVE_INTERNA", "cinta-interna-dev")
 
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://tfu:tfu@rabbitmq:5672/%2F")
+COLA_NOMBRE = os.getenv("COLA_NOMBRE", "admision_paquetes")
+COLA_INVALIDACIONES = os.getenv("COLA_INVALIDACIONES", "cinta_cache_invalidada")
+COLA_PAUSA_PROCESAMIENTO_S = float(os.getenv("COLA_PAUSA_PROCESAMIENTO_S", 0))
+

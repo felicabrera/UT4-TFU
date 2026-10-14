@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 from decimal import Decimal
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -24,9 +25,10 @@ from sqlalchemy.exc import IntegrityError
 from app.config import CLAVE_INTERNA
 from app.db import INSTANCIA, Sesion, repo, sembrar_cinta, vista_cinta
 from app.demo import router as router_demo
-from app.modelos import PaqueteEnTransito
+from app.modelos import PaqueteEnTransito, ResultadoSolicitudCola
 from app.salud import router as router_salud
 from app.salud import vivo
+from app.servicios import ejecutar_admision
 
 
 def _verificar_gatekeeper(clave: str | None):
@@ -140,25 +142,8 @@ def admitir(
     with Sesion() as sesion:
         try:
             with sesion.begin():
-                cinta = repo.obtener_para_actualizar(sesion, cinta_id)
-                if cinta is None:
-                    raise HTTPException(404, f"cinta {cinta_id} no existe")
-
-                disponible = cinta.capacidad_kg - cinta.carga_kg
-                if peso > disponible:
-                    # Si no hay cupo no se admite, y se dice por que.
-                    raise HTTPException(409, {
-                        "motivo": "cupo insuficiente en la cinta",
-                        "cinta_id": cinta_id,
-                        "peso_solicitado_kg": float(peso),
-                        "disponible_kg": float(disponible),
-                        "capacidad_kg": float(cinta.capacidad_kg),
-                        "carga_kg": float(cinta.carga_kg),
-                    })
-
-                paquete_id = repo.registrar_admision(
-                    sesion, cinta, solicitud.tipo_paquete, peso)
-                vista = vista_cinta(cinta)
+                respuesta = ejecutar_admision(
+                    sesion, cinta_id, solicitud.tipo_paquete, peso)
         except IntegrityError as error:
             # Red de seguridad: si por algun camino se intentara confirmar una
             # carga fuera de rango, la restriccion CHECK aborta la transaccion.
@@ -167,7 +152,26 @@ def admitir(
                 "error": str(error.orig),
             })
 
-    return {"paquete_id": str(paquete_id), "cinta": vista, "instancia": INSTANCIA}
+    return respuesta
+
+
+@app.get("/solicitudes/{solicitud_id}")
+def consultar_solicitud(solicitud_id: uuid.UUID,
+                        x_clave_interna: str | None = Header(default=None)):
+    """Consulta el resultado final de una solicitud recibida por la cola."""
+    _verificar_gatekeeper(x_clave_interna)
+    with Sesion() as sesion:
+        resultado = sesion.get(ResultadoSolicitudCola, solicitud_id)
+    if resultado is None:
+        return JSONResponse(status_code=202, content={
+            "solicitud_id": str(solicitud_id), "estado": "pendiente"})
+    return {
+        "solicitud_id": str(solicitud_id),
+        "estado": "admitida" if resultado.codigo_http == 200 else "rechazada",
+        "codigo_resultado": resultado.codigo_http,
+        "resultado": resultado.respuesta,
+        "procesada_en": resultado.procesada_en.isoformat(),
+    }
 
 
 @app.post("/cintas/{cinta_id}/egresos")

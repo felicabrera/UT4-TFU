@@ -33,6 +33,9 @@ LIMITES = {
 # ---------------------------------------------------------------------------
 
 ADMISION_URL = os.getenv("ADMISION_URL", "http://admision:8000")
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://tfu:tfu@rabbitmq:5672/%2F")
+COLA_NOMBRE = os.getenv("COLA_NOMBRE", "admision_paquetes")
+COLA_INVALIDACIONES = os.getenv("COLA_INVALIDACIONES", "cinta_cache_invalidada")
 CINTA_POR_DEFECTO = os.getenv("CINTA_ID", "C1")
 TIMEOUT_ADMISION_S = float(os.getenv("TIMEOUT_ADMISION_S", 10))
 

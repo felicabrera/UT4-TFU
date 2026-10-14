@@ -1,3 +1,4 @@
+from app.modelos import Base, Cinta, CintaEventual, ResultadoSolicitudCola
 """Conexion a la base y objetos que comparten main.py y demo.py."""
 
 import socket
@@ -24,6 +25,7 @@ def sembrar_cinta():
     evita que varias replicas arrancando a la vez se pisen entre si.
     """
     capacidad = Decimal(str(CINTA_CAPACIDAD_KG))
+    Base.metadata.create_all(bind=motor, tables=[ResultadoSolicitudCola.__table__])
     with motor.begin() as conexion:
         for tabla in ("cinta", "cinta_eventual"):
             conexion.execute(

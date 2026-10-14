@@ -14,6 +14,7 @@ import httpx
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from app.cola import verificar_broker
 from app.config import ADMISION_URL, TIMEOUT_SALUD_S
 
 INSTANCIA = socket.gethostname()
@@ -37,6 +38,7 @@ def _chequear_admision():
 # Dependencias que verifica /health/ready.
 CHEQUEOS = {
     "admision": _chequear_admision,
+    "rabbitmq": verificar_broker,
 }
 
 _hilos = ThreadPoolExecutor(max_workers=4)
