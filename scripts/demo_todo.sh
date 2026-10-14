@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Corre las cinco demostraciones en orden y muestra un resumen al final.
+# Corre las  demostraciones en orden y muestra un resumen al final.
 #
 #   bash scripts/demo_todo.sh            para entre una y otra, esperando Enter
 #   PAUSA=0 bash scripts/demo_todo.sh    las corre todas seguidas, sin parar
@@ -20,14 +20,10 @@ if [ "$PAUSA" = "auto" ]; then
 fi
 
 DEMOS=(
-    "demo_1_componentes.sh|Componentes e interfaces"
-    "demo_2_stateless.sh|Servicios sin estado"
-    "demo_3_acid.sh|ACID"
-    "demo_4_base.sh|Que pasaria con BASE"
-    "demo_5_escalabilidad.sh|Escalabilidad horizontal"
     "demo_health.sh|Health Endpoint Monitoring (disponibilidad)"
     "demo_throttling.sh|Throttling (disponibilidad)"
     "demo_cache_aside.sh|Cache-Aside (rendimiento)"
+    "demo_queue_load_leveling.sh|Queue Based Load Leveling (rendimiento)"
     "demo_seguridad.sh|Gatekeeper y Gateway Offloading (seguridad)"
 )
 

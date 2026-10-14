@@ -7,6 +7,19 @@ name: tfu-ut3
 
 services:
 
+  rabbitmq:
+    image: rabbitmq:4.1-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-tfu}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-tfu}
+    volumes:
+      - datos_cola:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   # Base de datos. Es el unico componente con estado.
   db:
     image: postgres:16-alpine
@@ -39,6 +52,19 @@ services:
       retries: 3
       start_period: 15s
 
+  # Consume admisiones en segundo plano y confirma cada mensaje tras el commit.
+  procesador_cola:
+    build: ./admision
+    command: ["python", "-m", "app.cola_worker"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://cinta:cinta@db:5432/cinta
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   # Valida el paquete antes de pedir cupo. Sin estado, se puede replicar.
   ingreso:
     build: ./ingreso
@@ -47,6 +73,8 @@ services:
       ADMISION_URL: http://admision:8000
     depends_on:
       admision:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live', timeout=2)"]
@@ -96,3 +124,4 @@ services:
 
 volumes:
   datos_cinta:
+  datos_cola:

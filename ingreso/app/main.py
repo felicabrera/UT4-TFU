@@ -5,12 +5,15 @@ Valida el paquete con las reglas de su tipo y, si pasa, le pide cupo al
 componente admision. No guarda nada entre solicitudes, por eso se puede replicar.
 """
 
+import uuid
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app import cliente_admision
 from app.cache import cache_cintas
+from app.cola import iniciar_listener_cache, publicar
 from app.config import CACHE_HABILITADA, CACHE_TTL_S, CINTA_POR_DEFECTO
 from app.reglas.registro import obtener_regla
 from app.salud import INSTANCIA, vivo
@@ -22,6 +25,11 @@ app = FastAPI(
     description="Interfaz IIngresoPaquetes. Consume IAdmisionCinta.",
     version="2.0.0",
 )
+
+
+@app.on_event("startup")
+def iniciar_listener_de_cache():
+    iniciar_listener_cache(cache_cintas)
 
 
 class Paquete(BaseModel):
@@ -129,4 +137,44 @@ def recibir_paquete(paquete: Paquete, cliente_autenticado: str = Depends(autenti
         "cliente": cliente_autenticado,
         "instancia": {"ingreso": INSTANCIA, "admision": cuerpo["instancia"]},
     }
+
+
+@app.post("/paquetes/cola", status_code=202)
+def recibir_paquete_en_cola(
+    paquete: Paquete,
+    cliente_autenticado: str = Depends(autenticar_cliente),
+):
+    """Valida y encola el paquete; el cupo se confirma asincronicamente."""
+    regla = obtener_regla(paquete.tipo_paquete)
+    if regla is None:
+        raise HTTPException(
+            422, f"tipo_paquete '{paquete.tipo_paquete}' no esta registrado")
+    es_valido, motivo = regla.es_valido(paquete.model_dump())
+    if not es_valido:
+        raise HTTPException(422, motivo)
+
+    solicitud_id = uuid.uuid4()
+    publicar({
+        "solicitud_id": str(solicitud_id),
+        "cinta_id": paquete.cinta_id,
+        "tipo_paquete": paquete.tipo_paquete,
+        "peso_kg": paquete.peso_kg,
+    })
+    return JSONResponse(status_code=202, content={
+        "solicitud_id": str(solicitud_id),
+        "estado": "pendiente",
+        "cliente": cliente_autenticado,
+    })
+
+
+@app.get("/solicitudes/{solicitud_id}")
+def consultar_solicitud(
+    solicitud_id: uuid.UUID,
+    _: str = Depends(autenticar_cliente),
+):
+    """Devuelve 202 mientras el trabajador procesa, o el resultado terminal."""
+    codigo, cuerpo = cliente_admision.estado_solicitud(solicitud_id)
+    if codigo == 503:
+        raise HTTPException(codigo, cuerpo)
+    return JSONResponse(status_code=codigo, content=cuerpo)
 

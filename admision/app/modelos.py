@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy import (CheckConstraint, DateTime, ForeignKey, Integer,
                         Numeric, String, func, text)
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -70,3 +70,14 @@ class CintaEventual(Base):
         Numeric(10, 2), nullable=False, server_default=text("0"))
     admitidos: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text("0"))
+    
+class ResultadoSolicitudCola(Base):
+    """Resultado terminal de una admision recibida por la cola."""
+
+    __tablename__ = "resultado_solicitud_cola"
+
+    id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    codigo_http: Mapped[int] = mapped_column(Integer, nullable=False)
+    respuesta: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    procesada_en: Mapped[object] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False)

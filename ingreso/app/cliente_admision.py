@@ -36,3 +36,8 @@ def admitir(cinta_id, tipo_paquete, peso_kg):
 def estado_cinta(cinta_id):
     """Consulta el estado de una cinta."""
     return _pedir("GET", f"/cintas/{cinta_id}")
+
+
+def estado_solicitud(solicitud_id):
+    """Consulta si una solicitud encolada sigue pendiente o ya termino."""
+    return _pedir("GET", f"/solicitudes/{solicitud_id}")
